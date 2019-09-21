@@ -1,4 +1,4 @@
-import data.fintype
+import data.fintype data.list
 
 namespace Fixedpoint
 
@@ -101,12 +101,72 @@ begin
  apply (@and.decidable _ _ H₁ H₂),
 end
   
+lemma finite_type_list_ex : 
+∀ (fSet sSet : predicate A) (l : list A),
+¬(∀ x : A, x ∈ l -> fSet x = sSet x) ->
+∃ x : A, x ∈ l /\ fSet x ≠ sSet x :=
+begin
+  intros fSet sSet l H,  
+  induction l, 
+  have H₁ : false, 
+    apply H, intros, 
+    cases a,
+  cases H₁, 
+
+  have H₁ : fSet l_hd ≠ sSet l_hd ∨ 
+            fSet l_hd = sSet l_hd, 
+    destruct (fSet l_hd);
+      destruct (sSet l_hd); intros,
+    right, rw [a, a_1], 
+    left, intro, rw [a, a_1] at a_2, 
+    cases a_2, 
+    left, intro, rw [a, a_1] at a_2, 
+    cases a_2, 
+    right, rw [a, a_1],
+  destruct H₁; intros, 
+  /- give l_hd as witness -/
+  have H₂ : l_hd ∈ (list.cons l_hd l_tl),
+    simp,  
+  exact (exists.intro l_hd (and.intro H₂ h)),
+  
+  have H₁ : ¬ (∀ x : A, x ∈ l_tl → fSet x = sSet x),
+  intro, apply H, intros, cases a_1, 
+  rw a_1, assumption, 
+  apply a, assumption, 
+  let rw := l_ih H₁, 
+  destruct rw, intros, 
+  destruct h_1, intros, 
+  have H₂ : w ∈ (list.cons l_hd l_tl), 
+   simp, right, assumption, 
+  exact (exists.intro w (and.intro H₂ right)),
+end
+
+
 lemma adding_new_element : 
 ∀ (fSet sSet : predicate A), rel_subset _ fSet sSet -> 
  ¬(∀ x : A, fSet x = sSet x) -> 
  ∃ y : A, fSet y = ff ∧ sSet y = tt :=
-begin
+ begin 
+ destruct (fintype.exists_univ_list A), 
  unfold rel_subset, 
+ intros w Hl fSet sSet Hx Hnx,
+ let rw := finite_type_list_ex A fSet sSet w,   
+ have H₁ : ¬(∀ x : A, x ∈ w -> fSet x = sSet x),
+  intro, apply Hnx, 
+  intro, apply a, destruct Hl, intros, 
+  apply right, 
+ let an := rw H₁,
+ destruct an, intros, 
+ destruct h, intros, 
+ destruct (fSet w_1);
+   destruct (sSet w_1); intros, 
+ rw [a, a_1] at right, 
+ cases (right rfl),
+ exact (exists.intro w_1 (and.intro a_1 a)),
+ let hwt := Hx w_1 a_1, 
+ rw hwt at a, cases a,
+ rw [a, a_1] at right, 
+ cases (right rfl),
  end 
 
     

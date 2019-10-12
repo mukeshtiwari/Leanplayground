@@ -1,13 +1,22 @@
 
-/- https://github.com/coq-community/corn/tree/master/order -/
+/- https://github.com/coq-community/corn/tree/master/order 
+  http://matt.might.net/articles/partial-orders/ -/
+
 namespace Ordering
 
 universes u v
+
+def dual_relation (A : Type u) (R : A -> A -> Prop) :=
+  ∀ x y : A, R x y ↔ R y x
 
 /- Preorder is reflexive and transitive -/
 class preorder (A : Type u) (R : A -> A -> Prop) :=
 (Hreflexive : ∀ x : A, R x x)
 (Htransitive : ∀ x y z, R x y → R y z → R x z)
+
+class total_preorder (A : Type u) (R : A → A → Prop) :=
+(Hp : preorder A R)
+(Htotal : ∀ x y : A, R x y ∨ R y x)
 
 /- Equivalence is a preorder set with symmetry -/
 class equivalence (A : Type u) (R : A -> A -> Prop) :=
@@ -25,7 +34,7 @@ class meet_semilattice (A : Type u) (R : A -> A -> Prop)
 (Hp : partial_order A R) 
 (H₁ : ∀ x y : A, R (meet x y) x)
 (H₂ : ∀ x y : A, R (meet x y) y)
-(H₃ : ∀ x y z : A, R z x -> R z y -> R z (meet x y))
+(H₃ : ∀ x y z : A, R z x → R z y →  R z (meet x y))
 
 lemma meet_idempotent : forall (A : Type u) (R : A -> A -> Prop)
   (x : A) (meet : A → A → A), 
@@ -113,7 +122,12 @@ class bounded_lattic (A : Type u) (R : A -> A -> Prop)  (Top : A) (Bot : A)
 (Hb : ∀ x, R Bot x)
 (Ht : ∀ x, R x Top)
 
+/- f is subset of g -/
+def subset (A : Type u) (f : A -> Prop) (g : A -> Prop) :=
+   ∀ x : A, f x -> g x 
 
+
+class complete_lattic (A : Type u) (R : A -> A -> Prop) 
 
 def monotone_fun (A : Type u) (B : Type v) (f : A -> B) 
   (Ra : A -> A -> Prop) (Rb : B -> B -> Prop) :=

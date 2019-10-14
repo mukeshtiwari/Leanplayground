@@ -86,9 +86,9 @@ inductive zeroknowledge : ∀ (t : zmodp p Hp), communication p Hp t → Type u
 
 universes u v
 inductive communication : Type u
-| commitment : ∀ (k : zmodp p Hp), communication
-| challenge  : ∀ (k c : zmodp p Hp), communication
-| response   : ∀ (k c s : zmodp p Hp), communication
+| commitment (k : zmodp p Hp) : communication
+| challenge (k c : zmodp p Hp) : communication
+| response (k c s : zmodp p Hp) : communication
 
 /- /- zero knowledge proof of zkp {x | g^x = h} -/  -/
 open communication

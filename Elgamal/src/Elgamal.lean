@@ -60,82 +60,84 @@ end
          
 end Zeroknowledgeproof
 
-namespace Interactive 
+namespace Interactivezkp
 
 variables (p : ℕ) (Hp : nat.prime p)
           (g : zmodp p Hp)
 
-/- 
-universes u v
-inductive communication : zmodp p Hp -> Type u
-| commitment : ∀ k, communication k
-| challenge : ∀ k, communication k
-| response : ∀ k, communication k
 
-open communication
-/- Both parties are honest. zero knowledge proof -/
-inductive zeroknowledge : ∀ (t : zmodp p Hp), communication p Hp t → Type u
-| first_step : ∀ (r k : zmodp p Hp), k = g^r.val → zeroknowledge k (commitment k)
-| second_step : ∀ (k c : zmodp p Hp), zeroknowledge k (commitment k) → 
-    zeroknowledge c (challenge c)
-| final_step : ∀ (s k c a : zmodp p Hp), s = k + c * a → 
-          zeroknowledge c (challenge c) → zeroknowledge s (response s)
-    
--/
-/- I claim that this always checks out -/
-
-universes u v
+universes u
 inductive communication : Type u
 | commitment (k : zmodp p Hp) : communication
-| challenge (k c : zmodp p Hp) : communication
-| response (k c s : zmodp p Hp) : communication
+| challenge (k : zmodp p Hp) : communication
+| response (k s : zmodp p Hp) : communication
 
-/- /- zero knowledge proof of zkp {x | g^x = h} -/  -/
+/- zero knowledge proof of zkp {x | g^x = h} 
+   r is prover's randomness, c is challenger's randomness 
+   Can this be abstracted for some R : A → B → bool -/
 open communication
-inductive zeroknowledge (x h : zmodp p Hp) (Hf : h = g^x.val) : 
-    communication p Hp → Type u
-| first_step (r k : zmodp p Hp) : k = g^r.val → zeroknowledge (commitment k)
-| second_step (k c : zmodp p Hp) : zeroknowledge (commitment k) → 
-    zeroknowledge (challenge k c)
-| final_step (r k c s : zmodp p Hp) : s = r + c * x →
-      /- How to connect r and k ? k = g^r.val or this can be 
-      inferred from zeroknowledge (challenge k c). What if 
-      prover try to cheat -/
-          zeroknowledge (challenge k c) → zeroknowledge (response k c s)
+inductive zkp_transcript (x h : zmodp p Hp) (Hf : h = g^x.val)  
+    (r c : zmodp p Hp) :  communication p Hp → Type u
+| commitment_step (k : zmodp p Hp) : k = g^r.val → zkp_transcript (commitment k)
+| challenge_step (k : zmodp p Hp) : zkp_transcript (commitment k) → 
+    zkp_transcript (challenge k)
+| response_step (k s : zmodp p Hp) : s = r + c * x →
+          zkp_transcript (challenge k) → zkp_transcript (response k s)
+/- end of zero knowledge proof transcript -/
 
-axiom unique_element_in_zmodp : ∀ (k : zmodp p Hp), ∃ r : zmodp p Hp, k = g^r.val
+open zkp_transcript
+/- I don't care how the transcript is constructed. If it checks out according 
+   to defined rule then I will accept it. -/
+def accept_transcript  (k r c s x h : zmodp p Hp) (Hf : h = g^x.val)
+      (Hzkp : zkp_transcript p Hp g x h Hf r c (response k s)) :=
+      g^s.val =  k * h^c.val 
 
-axiom discrete_log : ∀ (k r₁ r₂ : zmodp p Hp), k = g^r₁.val -> k = g^r₂.val -> 
-           r₁ = r₂  
+/- A transcript is not valid if it does not check out -/
+def reject_transcript (k r c s x h : zmodp p Hp) (Hf : h = g^x.val)
+      (Hzkp : zkp_transcript p Hp g x h Hf r c (response k s)) :=
+      g^s.val ≠  k * h^c.val 
 
-open zeroknowledge
-#check zeroknowledge
-lemma first_constructor :  ∀ (k x h : zmodp p Hp) (Hf : h = g^x.val), 
-  zeroknowledge p Hp g x h Hf (commitment k) :=
-  begin 
-    intros, have h := unique_element_in_zmodp p Hp g k, 
-    sorry,
-  end
+ /- for any given x h and proof Hf, randomness r c, I can always construct 
+    a valid certificate. I will prove this formally that this 
+    function always constructs a valid certificate which checks out  -/
+ def construct_a_certificate (r c x h : zmodp p Hp) (Hf : h = g^x.val) :
+        zkp_transcript p Hp g x h Hf r c (response (g^r.val) (r + c * x)) := 
+    response_step (g^r.val) (r + c * x) rfl (challenge_step (g^r.val) 
+      (commitment_step _ _ (g^r.val) rfl))
 
- 
-lemma proof_of_correctness : ∀ (x h : zmodp p Hp) (Hf : h = g^x.val) 
-    (k c s : zmodp p Hp), 
-    zeroknowledge p Hp g x h Hf (response k c s) → 
-    g^s.val = k * h^c.val :=
+/- certificate checking is decidable-/
+
+ /- Proof that the construct_a_certificate function always constructs 
+    a valid certificate. Each valid certificate always checks out : Completeness -/
+lemma proof_of_correctness :
+    ∀ (r c x h : zmodp p Hp) (Hf : h = g^x.val) 
+    (cert = construct_a_certificate p Hp g r c x h Hf), 
+    accept_transcript p Hp g _ _ _ _ _ _ _ cert := 
     begin 
-    intros x h Hf k c s Hzkp, 
-    destruct Hzkp, 
-    {intros r k Ha Hr, injection Hr},
-    {intros k c a Hr, injection Hr},
-    intros r k c s Hs Ha Hr Hzero, clear Hr, 
-    destruct Ha, 
-    intros _ _ _ Hr₁, injection Hr₁, 
-    intros k₁ c₁ Hc Hr₁ Ha₁, injection Hr₁, 
-    destruct Hc, intros, 
-    
+      intros, 
+      unfold accept_transcript, 
+      /- some basic math would solve it, but I don't know 
+         the tactics yet.-/
+         sorry 
     end 
 
-lemma proof_of_knowlege : 
+ /- If you give me two valid ceritificate then I can extract a witness x : Soundenss  -/
+lemma extract_witness : 
+  ∀ (r₁ c₁ r₂ c₂ x h : zmodp p Hp) (Hf : h = g^x.val)
+  (cert₁ = construct_a_certificate p Hp g r₁ c₁ x h Hf)
+  (cert₂ = construct_a_certificate p Hp g r₂ c₂ x h Hf), 
+  accept_transcript p Hp g _ _ _ _ _ _ _ cert₁ →
+  accept_transcript p Hp g _ _ _ _ _ _ _ cert₂ →  true := 
+  begin
+    intros, sorry
+  end 
+
+ /- Zero knowledge Proof -/
+
+
+end Interactivezkp
+
+
 
 namespace Elgamal
 

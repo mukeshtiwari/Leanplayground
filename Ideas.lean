@@ -79,6 +79,25 @@ theorem monoid_cancel_left
     exact rfl 
 
 
+theorem monoid_cancel_right
+  {α : Type u} 
+  [H : Monoid α] 
+  (z iz x y : α) : 
+  H.op z iz = H.one →
+  (H.op x z = H.op y z ↔ x = y) := by 
+  intro ha
+  apply Iff.intro
+  focus
+    intro hb 
+    have Hcut : (H.op (H.op x z) iz)  = (H.op (H.op y z) iz) := by 
+      rewrite [hb]; exact rfl
+    rewrite [<-H.op_associative, ha, H.right_one] at Hcut
+    rewrite [<-H.op_associative, ha, H.right_one] at Hcut
+    exact Hcut 
+  focus 
+    intro hb 
+    subst hb 
+    exact rfl 
 
   
 
